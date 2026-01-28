@@ -42,3 +42,9 @@ select = [
     # flake8-return
     "RET",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+    "ty>=0.0.14",
+]

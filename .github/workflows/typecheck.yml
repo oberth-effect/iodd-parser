@@ -1,0 +1,16 @@
+name: ty typecheck
+on: [ push, pull_request ]
+jobs:
+  ruff-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true # Enables caching for uv downloads/virtual environments
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Run ty
+        run: uv run ty check --output-format github
