@@ -37,7 +37,7 @@ select = [
     "A",
     # isort
     "I",
-    # # flake8-fixme
+    # flake8-fixme
     "FIX",
     # flake8-return
     "RET",
