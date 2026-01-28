@@ -14,3 +14,31 @@ dependencies = [
 [build-system]
 requires = ["uv_build>=0.8.3,<0.9.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+exclude = ["src/iodd_parser/generated"]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # flake8-comperhensions
+    "C4",
+    # flake8-builitins
+    "A",
+    # isort
+    "I",
+    # # flake8-fixme
+    "FIX",
+    # flake8-return
+    "RET",
+]
