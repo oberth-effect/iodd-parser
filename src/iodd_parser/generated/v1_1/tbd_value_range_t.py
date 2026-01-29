@@ -1,0 +1,25 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from iodd_parser.generated.v1_1.value_range_t_2 import ValueRangeT2
+
+__NAMESPACE__ = "http://www.io-link.com/IODD-Snippets/2025/10"
+
+
+@dataclass(kw_only=True)
+class TbdValueRangeT(ValueRangeT2):
+    lower_value: object = field(
+        metadata={
+            "name": "lowerValue",
+            "type": "Attribute",
+            "required": True,
+        }
+    )
+    upper_value: object = field(
+        metadata={
+            "name": "upperValue",
+            "type": "Attribute",
+            "required": True,
+        }
+    )
