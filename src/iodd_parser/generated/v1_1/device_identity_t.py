@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from iodd_parser.generated.v1_1.device_variant_collection_t import (
     DeviceVariantCollectionT,
 )
-from iodd_parser.generated.v1_1.text_ref_t_1 import TextRefT1
+from iodd_parser.generated.v1_1.text_ref_t import TextRefT
 
 __NAMESPACE__ = "http://www.io-link.com/IODD/2010/10"
 
@@ -27,7 +27,7 @@ class DeviceIdentityT:
     :ivar additional_device_ids:
     """
 
-    vendor_text: TextRefT1 = field(
+    vendor_text: TextRefT = field(
         metadata={
             "name": "VendorText",
             "type": "Element",
@@ -35,7 +35,7 @@ class DeviceIdentityT:
             "required": True,
         }
     )
-    vendor_url: TextRefT1 = field(
+    vendor_url: TextRefT = field(
         metadata={
             "name": "VendorUrl",
             "type": "Element",
@@ -51,7 +51,7 @@ class DeviceIdentityT:
             "namespace": "http://www.io-link.com/IODD/2010/10",
         },
     )
-    device_name: TextRefT1 = field(
+    device_name: TextRefT = field(
         metadata={
             "name": "DeviceName",
             "type": "Element",
@@ -59,7 +59,7 @@ class DeviceIdentityT:
             "required": True,
         }
     )
-    device_family: TextRefT1 = field(
+    device_family: TextRefT = field(
         metadata={
             "name": "DeviceFamily",
             "type": "Element",

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from iodd_parser.generated.v1_1.document_info_t_1 import DocumentInfoT1
-from iodd_parser.generated.v1_1.language_t_1 import LanguageT1
+from iodd_parser.generated.v1_1.document_info_t import DocumentInfoT
+from iodd_parser.generated.v1_1.language_t import LanguageT
 from iodd_parser.generated.v1_1.stamp_t import StampT
 
 __NAMESPACE__ = "http://www.io-link.com/IODD/2010/10"
@@ -22,7 +22,7 @@ class ExternalTextDocumentT:
     :ivar stamp: Filled out by the IODD Checker.
     """
 
-    document_info: None | DocumentInfoT1 = field(
+    document_info: None | DocumentInfoT = field(
         default=None,
         metadata={
             "name": "DocumentInfo",
@@ -30,7 +30,7 @@ class ExternalTextDocumentT:
             "namespace": "http://www.io-link.com/IODD/2010/10",
         },
     )
-    language: LanguageT1 = field(
+    language: LanguageT = field(
         metadata={
             "name": "Language",
             "type": "Element",

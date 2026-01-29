@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from iodd_parser.generated.v1_1.datatype_collection_t_1 import (
-    DatatypeCollectionT1,
+from iodd_parser.generated.v1_1.datatype_collection_t import (
+    DatatypeCollectionT,
 )
-from iodd_parser.generated.v1_1.error_type_collection_t_1 import (
-    ErrorTypeCollectionT1,
+from iodd_parser.generated.v1_1.error_type_collection_t import (
+    ErrorTypeCollectionT,
 )
-from iodd_parser.generated.v1_1.event_collection_t_1 import EventCollectionT1
+from iodd_parser.generated.v1_1.event_collection_t import EventCollectionT
 from iodd_parser.generated.v1_1.features_t import FeaturesT
-from iodd_parser.generated.v1_1.process_data_collection_t_2 import (
-    ProcessDataCollectionT2,
+from iodd_parser.generated.v1_1.process_data_collection_t import (
+    ProcessDataCollectionT,
 )
-from iodd_parser.generated.v1_1.user_interface_t_2 import UserInterfaceT2
-from iodd_parser.generated.v1_1.variable_collection_t_2 import (
-    VariableCollectionT2,
+from iodd_parser.generated.v1_1.user_interface_t import UserInterfaceT
+from iodd_parser.generated.v1_1.variable_collection_t import (
+    VariableCollectionT,
 )
 
 __NAMESPACE__ = "http://www.io-link.com/IODD/2010/10"
@@ -42,7 +42,7 @@ class DeviceFunctionT:
             "required": True,
         }
     )
-    datatype_collection: None | DatatypeCollectionT1 = field(
+    datatype_collection: None | DatatypeCollectionT = field(
         default=None,
         metadata={
             "name": "DatatypeCollection",
@@ -50,7 +50,7 @@ class DeviceFunctionT:
             "namespace": "http://www.io-link.com/IODD/2010/10",
         },
     )
-    variable_collection: VariableCollectionT2 = field(
+    variable_collection: VariableCollectionT = field(
         metadata={
             "name": "VariableCollection",
             "type": "Element",
@@ -58,7 +58,7 @@ class DeviceFunctionT:
             "required": True,
         }
     )
-    process_data_collection: ProcessDataCollectionT2 = field(
+    process_data_collection: ProcessDataCollectionT = field(
         metadata={
             "name": "ProcessDataCollection",
             "type": "Element",
@@ -66,7 +66,7 @@ class DeviceFunctionT:
             "required": True,
         }
     )
-    error_type_collection: None | ErrorTypeCollectionT1 = field(
+    error_type_collection: None | ErrorTypeCollectionT = field(
         default=None,
         metadata={
             "name": "ErrorTypeCollection",
@@ -74,7 +74,7 @@ class DeviceFunctionT:
             "namespace": "http://www.io-link.com/IODD/2010/10",
         },
     )
-    event_collection: None | EventCollectionT1 = field(
+    event_collection: None | EventCollectionT = field(
         default=None,
         metadata={
             "name": "EventCollection",
@@ -82,7 +82,7 @@ class DeviceFunctionT:
             "namespace": "http://www.io-link.com/IODD/2010/10",
         },
     )
-    user_interface: UserInterfaceT2 = field(
+    user_interface: UserInterfaceT = field(
         metadata={
             "name": "UserInterface",
             "type": "Element",

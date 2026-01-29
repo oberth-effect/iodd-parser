@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from iodd_parser.generated.v1_1.collection_t_1 import CollectionT1
+from iodd_parser.generated.v1_1.collection_t import CollectionT
 
 __NAMESPACE__ = "http://www.io-link.com/IODD/2010/10"
 
 
 @dataclass(kw_only=True)
-class UnitCollectionT(CollectionT1):
+class UnitCollectionT(CollectionT):
     unit: list[UnitCollectionT.Unit] = field(
         default_factory=list,
         metadata={

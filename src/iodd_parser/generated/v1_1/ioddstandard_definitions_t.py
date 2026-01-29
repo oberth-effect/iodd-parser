@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from iodd_parser.generated.v1_1.datatype_collection_t_1 import (
-    DatatypeCollectionT1,
+from iodd_parser.generated.v1_1.datatype_collection_t import (
+    DatatypeCollectionT,
 )
-from iodd_parser.generated.v1_1.document_info_t_1 import DocumentInfoT1
-from iodd_parser.generated.v1_1.external_text_collection_t_1 import (
-    ExternalTextCollectionT1,
+from iodd_parser.generated.v1_1.document_info_t import DocumentInfoT
+from iodd_parser.generated.v1_1.external_text_collection_t import (
+    ExternalTextCollectionT,
 )
 from iodd_parser.generated.v1_1.ioddstandard_error_type_collection_t import (
     IoddstandardErrorTypeCollectionT,
@@ -38,7 +38,7 @@ class IoddstandardDefinitionsT:
     class Meta:
         name = "IODDStandardDefinitionsT"
 
-    document_info: DocumentInfoT1 = field(
+    document_info: DocumentInfoT = field(
         metadata={
             "name": "DocumentInfo",
             "type": "Element",
@@ -46,7 +46,7 @@ class IoddstandardDefinitionsT:
             "required": True,
         }
     )
-    datatype_collection: None | DatatypeCollectionT1 = field(
+    datatype_collection: None | DatatypeCollectionT = field(
         default=None,
         metadata={
             "name": "DatatypeCollection",
@@ -78,7 +78,7 @@ class IoddstandardDefinitionsT:
             "required": True,
         }
     )
-    external_text_collection: ExternalTextCollectionT1 = field(
+    external_text_collection: ExternalTextCollectionT = field(
         metadata={
             "name": "ExternalTextCollection",
             "type": "Element",

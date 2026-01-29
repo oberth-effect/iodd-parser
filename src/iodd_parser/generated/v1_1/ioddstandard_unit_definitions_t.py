@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from iodd_parser.generated.v1_1.document_info_t_1 import DocumentInfoT1
-from iodd_parser.generated.v1_1.external_text_collection_t_1 import (
-    ExternalTextCollectionT1,
+from iodd_parser.generated.v1_1.document_info_t import DocumentInfoT
+from iodd_parser.generated.v1_1.external_text_collection_t import (
+    ExternalTextCollectionT,
 )
 from iodd_parser.generated.v1_1.stamp_t import StampT
 from iodd_parser.generated.v1_1.unit_collection_t import UnitCollectionT
@@ -24,7 +24,7 @@ class IoddstandardUnitDefinitionsT:
     class Meta:
         name = "IODDStandardUnitDefinitionsT"
 
-    document_info: DocumentInfoT1 = field(
+    document_info: DocumentInfoT = field(
         metadata={
             "name": "DocumentInfo",
             "type": "Element",
@@ -40,7 +40,7 @@ class IoddstandardUnitDefinitionsT:
             "required": True,
         }
     )
-    external_text_collection: ExternalTextCollectionT1 = field(
+    external_text_collection: ExternalTextCollectionT = field(
         metadata={
             "name": "ExternalTextCollection",
             "type": "Element",

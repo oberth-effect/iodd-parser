@@ -5,9 +5,9 @@ from dataclasses import dataclass, field
 from iodd_parser.generated.v1_1.comm_network_profile_t import (
     CommNetworkProfileT,
 )
-from iodd_parser.generated.v1_1.document_info_t_1 import DocumentInfoT1
-from iodd_parser.generated.v1_1.external_text_collection_t_1 import (
-    ExternalTextCollectionT1,
+from iodd_parser.generated.v1_1.document_info_t import DocumentInfoT
+from iodd_parser.generated.v1_1.external_text_collection_t import (
+    ExternalTextCollectionT,
 )
 from iodd_parser.generated.v1_1.profile_body_t import ProfileBodyT
 from iodd_parser.generated.v1_1.profile_header_t import ProfileHeaderT
@@ -31,7 +31,7 @@ class Iodevice:
         name = "IODevice"
         namespace = "http://www.io-link.com/IODD/2010/10"
 
-    document_info: DocumentInfoT1 = field(
+    document_info: DocumentInfoT = field(
         metadata={
             "name": "DocumentInfo",
             "type": "Element",
@@ -59,7 +59,7 @@ class Iodevice:
             "required": True,
         }
     )
-    external_text_collection: ExternalTextCollectionT1 = field(
+    external_text_collection: ExternalTextCollectionT = field(
         metadata={
             "name": "ExternalTextCollection",
             "type": "Element",
