@@ -20,6 +20,10 @@ from iodd_parser.generated.v1_1 import (
 STANDARD_DEFINITIONS_PACKAGE = "iodd_parser.standard_definitions"
 STANDARD_DEFINITIONS_VERSION = "v1_1"
 
+IODD_IMAGE_FORMATS = {
+    ".png",
+}
+
 
 @dataclass
 class IoddImage:
@@ -27,7 +31,7 @@ class IoddImage:
     data: bytes
 
 
-type Variable = VariableCollectionT.Variable | IoddstandardVariableT | tuple[IoddstandardVariableT, StdVariableRefT]
+type Variable = VariableCollectionT.Variable | tuple[IoddstandardVariableT, StdVariableRefT]
 
 
 @dataclass
@@ -107,13 +111,18 @@ class IODDParser:
 
             images: list[IoddImage] = []
             if self.load_images:
-                image_exts = {
-                    ".png",
-                }
                 for name in archive.namelist():
                     if name.endswith("/"):
                         continue
-                    if Path(name).suffix.lower() in image_exts:
+                    if Path(name).suffix.lower() in IODD_IMAGE_FORMATS:
                         images.append(IoddImage(filename=name, data=archive.read(name)))
 
         return ParsedIODD(self._loaded_definitions, self._loaded_units, device, images)
+
+    @property
+    def standard_definitions(self):
+        return self._loaded_definitions
+
+    @property
+    def standard_definition_units(self):
+        return self._loaded_units
