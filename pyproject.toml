@@ -1,7 +1,7 @@
 [project]
 name = "iodd-parser"
 version = "0.1.0"
-description = "Add your description here"
+description = "A simple Python package for parsing IODD files"
 readme = "README.md"
 authors = [
     { name = "Štěpán Venclík", email = "stepan.venclik@gmail.com" }

@@ -1,5 +1,28 @@
+"""
+IODD Parser package.
+
+This package provides tools for parsing IO-Link Device Description (IODD)
+files and resolving all references to produce unified data structures.
+"""
+
 from iodd_parser.parser import IODDParser
+from iodd_parser.types import (
+    IoddImage,
+    ParsedIODD,
+    ResolvedError,
+    ResolvedProcessData,
+    ResolvedProcessDataItem,
+    ResolvedUnit,
+    ResolvedVariable,
+)
 
 __all__ = [
     "IODDParser",
+    "IoddImage",
+    "ParsedIODD",
+    "ResolvedError",
+    "ResolvedProcessData",
+    "ResolvedProcessDataItem",
+    "ResolvedUnit",
+    "ResolvedVariable",
 ]
