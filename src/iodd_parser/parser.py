@@ -19,12 +19,13 @@ from iodd_parser.generated.v1_1 import (
     IoddstandardDefinitions,
     IoddstandardUnitDefinitions,
     Iodevice,
-    LanguageT,
 )
 from iodd_parser.resolvers import (
     resolve_errors,
     resolve_process_data,
+    resolve_texts,
     resolve_units,
+    resolve_user_interface,
     resolve_variables,
 )
 from iodd_parser.types import (
@@ -34,6 +35,7 @@ from iodd_parser.types import (
     ResolvedProcessData,
     ResolvedProcessDataItem,
     ResolvedUnit,
+    ResolvedUserInterface,
     ResolvedVariable,
 )
 
@@ -45,6 +47,7 @@ __all__ = [
     "ResolvedProcessData",
     "ResolvedProcessDataItem",
     "ResolvedUnit",
+    "ResolvedUserInterface",
     "ResolvedVariable",
 ]
 
@@ -54,18 +57,6 @@ STANDARD_DEFINITIONS_VERSION = "v1_1"
 IODD_IMAGE_FORMATS = {
     ".png",
 }
-
-
-def _lang_id(lng: LanguageT) -> str:
-    """
-    Extract the language identifier from a LanguageT object.
-
-    :param lng: The language object.
-    :returns: The language identifier string.
-    """
-    if isinstance(lng.lang, str):
-        return lng.lang
-    return lng.lang.value
 
 
 def _resolve_standard_definition_source(value: str | Path) -> Path | Traversable:
@@ -83,9 +74,7 @@ def _resolve_standard_definition_source(value: str | Path) -> Path | Traversable
         return value
 
     if isinstance(value, str):
-        resource_dir = files(STANDARD_DEFINITIONS_PACKAGE).joinpath(
-            STANDARD_DEFINITIONS_VERSION
-        )
+        resource_dir = files(STANDARD_DEFINITIONS_PACKAGE).joinpath(STANDARD_DEFINITIONS_VERSION)
         file_path = Path(value)
         if len(file_path.parts) == 1:
             candidate = resource_dir.joinpath(file_path.name)
@@ -143,9 +132,7 @@ class IODDParser:
         definitions_source = _resolve_standard_definition_source(standard_definitions)
         units_source = _resolve_standard_definition_source(standard_unit_definitions)
 
-        self._loaded_definitions = parser.parse(
-            definitions_source, IoddstandardDefinitions
-        )
+        self._loaded_definitions = parser.parse(definitions_source, IoddstandardDefinitions)
         self._loaded_units = parser.parse(units_source, IoddstandardUnitDefinitions)
 
         # Pre-load language-specific standard definitions (texts only)
@@ -163,12 +150,9 @@ class IODDParser:
                 try:
                     def_lang_source = _resolve_standard_definition_source(def_lang_name)
                     lang_def = parser.parse(def_lang_source, ExternalTextDocument)
-                    self._lang_texts[lang_code] = {
-                        t.id: t.value for t in lang_def.language.text
-                    }
+                    self._lang_texts[lang_code] = {t.id: t.value for t in lang_def.language.text}
                 except (FileNotFoundError, OSError):
                     pass  # Language file not available
-
 
     def parse(self, zip_path: str | Path, lang: str | None = None) -> ParsedIODD:
         """
@@ -209,15 +193,9 @@ class IODDParser:
             ]
 
             if not xml_candidates:
-                raise FileNotFoundError(
-                    f"Expected IODD XML with suffix '{xml_suffix}' "
-                    f"not found in {zip_pth.name}"
-                )
+                raise FileNotFoundError(f"Expected IODD XML with suffix '{xml_suffix}' not found in {zip_pth.name}")
             if len(xml_candidates) > 1:
-                raise ValueError(
-                    f"Multiple IODD XML files with suffix '{xml_suffix}' "
-                    f"found: {xml_candidates}"
-                )
+                raise ValueError(f"Multiple IODD XML files with suffix '{xml_suffix}' found: {xml_candidates}")
 
             main_xml_name = xml_candidates[0]
             xml_data = archive.read(main_xml_name)
@@ -235,22 +213,14 @@ class IODDParser:
 
                 # Find the language file in the archive (case-insensitive)
                 lang_file_match = next(
-                    (
-                        name
-                        for name in archive.namelist()
-                        if name.lower() == lang_file_name_lower
-                    ),
+                    (name for name in archive.namelist() if name.lower() == lang_file_name_lower),
                     None,
                 )
 
                 if lang_file_match:
                     lang_xml_data = archive.read(lang_file_match)
-                    lang_doc = XmlParser().parse(
-                        io.BytesIO(lang_xml_data), ExternalTextDocument
-                    )
-                    device_lang_texts = {
-                        t.id: t.value for t in lang_doc.language.text
-                    }
+                    lang_doc = XmlParser().parse(io.BytesIO(lang_xml_data), ExternalTextDocument)
+                    device_lang_texts = {t.id: t.value for t in lang_doc.language.text}
 
             images: list[IoddImage] = []
             if self.load_images:
@@ -258,59 +228,16 @@ class IODDParser:
                     if name.endswith("/"):
                         continue
                     if Path(name).suffix.lower() in IODD_IMAGE_FORMATS:
-                        images.append(
-                            IoddImage(filename=name, data=archive.read(name))
-                        )
+                        images.append(IoddImage(filename=name, data=archive.read(name)))
 
-        # Resolve text collections with language support
-        # Always start with the primary language (English) as base
-        texts: dict[str, str] = {
-            t.id: t.value
-            for t in self._loaded_definitions.external_text_collection.primary_language.text
-        }
-        texts.update({
-            t.id: t.value
-            for t in device.external_text_collection.primary_language.text
-        })
-        texts.update({
-            t.id: t.value
-            for t in self._loaded_units.external_text_collection.primary_language.text
-        })
-
-        # If a specific language is requested, overlay those texts on top
-        if lang:
-            # First, apply pre-loaded language-specific standard definitions texts
-            if lang in self._lang_texts:
-                texts.update(self._lang_texts[lang])
-
-            # Also check for language sections within the main definitions file (fallback)
-            lang_dfs = next(
-                (
-                    x
-                    for x in self._loaded_definitions.external_text_collection.language
-                    if _lang_id(x) == lang
-                ),
-                None,
-            )
-            if lang_dfs is not None:
-                texts.update({t.id: t.value for t in lang_dfs.text})
-
-            # Check for language sections within the main device IODD file
-            lang_dev = next(
-                (
-                    x
-                    for x in device.external_text_collection.language
-                    if _lang_id(x) == lang
-                ),
-                None,
-            )
-            if lang_dev is not None:
-                texts.update({t.id: t.value for t in lang_dev.text})
-
-            # Finally, overlay device-specific language file texts (highest priority)
-            if device_lang_texts:
-                texts.update(device_lang_texts)
-
+        texts = resolve_texts(
+            self._loaded_definitions,
+            self._loaded_units,
+            device,
+            lang,
+            self._lang_texts,
+            device_lang_texts,
+        )
 
         # Build datatypes lookup from both standard definitions and device
         datatypes: dict[str, DatatypeT] = {}
@@ -345,6 +272,11 @@ class IODDParser:
             datatypes,
         )
 
+        user_interface = resolve_user_interface(
+            device.profile_body.device_function.user_interface,
+            texts,
+        )
+
         # Extract device identity information
         device_identity = device.profile_body.device_identity
         device_name = texts.get(
@@ -364,6 +296,7 @@ class IODDParser:
             datatypes=datatypes,
             errors=errors,
             units=units,
+            user_interface=user_interface,
             images=images,
         )
 

@@ -41,6 +41,8 @@ select = [
     "FIX",
     # flake8-return
     "RET",
+    # ruff specific rules
+    "RUF"
 ]
 
 [dependency-groups]
