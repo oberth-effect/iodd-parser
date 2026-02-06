@@ -1,7 +1,7 @@
 [project]
 name = "iodd-parser"
 version = "0.1.0"
-description = "A simple Python package for parsing IODD files"
+description = "A simple Python package for parsing IO-Link Device Description (IODD) v1.1 files"
 readme = "README.md"
 authors = [
     { name = "Štěpán Venclík", email = "stepan.venclik@gmail.com" }
@@ -49,4 +49,10 @@ select = [
 dev = [
     "ruff>=0.14.14",
     "ty>=0.0.14",
+]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-include-markdown-plugin>=7.2.1",
+    "mkdocs-material>=9.7.1",
+    "mkdocstrings[python]>=1.0.2",
 ]

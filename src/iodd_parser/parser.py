@@ -1,7 +1,7 @@
 """
 IODD Parser module.
 
-This module provides the :class:`IODDParser` class for parsing IO-Link
+This module provides the [`iodd_parser.IODDParser`][] class for parsing IO-Link
 Device Description (IODD) files packaged as ZIP archives.
 """
 
@@ -48,7 +48,7 @@ class IODDParser:
     Parser for IO-Link Device Description (IODD) files.
 
     This class parses IODD ZIP archives and resolves all references to
-    produce a unified :class:`ParsedIODD` result with resolved text strings,
+    produce a unified [`iodd_parser.ParsedIODD`][] result with resolved text strings,
     datatypes, variables, errors, units, and process data.
 
     :param standard_definitions_folder: Optional path to a folder containing
@@ -140,11 +140,12 @@ class IODDParser:
         Parse an IODD ZIP archive without resolving references.
 
         This method parses the XML files and discovers all available language files,
-        returning a :class:`ParsedIODD` object. Call :meth:`ParsedIODD.resolve`
-        on the result to resolve all references with an optional language.
+        returning a [`iodd_parser.ParsedIODD`][] object. Call
+        [`ParsedIODD.resolve`][iodd_parser.ParsedIODD.resolve] on the result to resolve all
+        references with an optional language.
 
         :param zip_path: Path to the IODD ZIP file.
-        :returns: A :class:`ParsedIODD` object with parsed XML data.
+        :returns: A [`iodd_parser.ParsedIODD`][] object with parsed XML data.
         :raises FileNotFoundError: If the ZIP file or expected XML is not found.
         :raises ValueError: If multiple matching XML files are found in the archive.
         """
@@ -215,8 +216,8 @@ class IODDParser:
         """
         Parse an IODD ZIP archive and resolve all references.
 
-        This is a convenience method that calls :meth:`parse` followed by
-        :meth:`ParsedIODD.resolve`.
+        This is a convenience method that calls [`IODDParser.parse`][iodd_parser.IODDParser.parse]
+        followed by [`ParsedIODD.resolve`][iodd_parser.ParsedIODD.resolve].
 
         :param zip_path: Path to the IODD ZIP file.
         :param lang: Optional language code (e.g., "de", "fr") for localised texts.
@@ -231,7 +232,7 @@ class IODDParser:
             6. Language sections within main device IODD file
             7. Device-specific language file (e.g., ``*-IODD1.1-de.xml``) - highest priority
 
-        :returns: A :class:`ResolvedIODD` object with all resolved data.
+        :returns: A [`iodd_parser.ResolvedIODD`][] object with all resolved data.
         :raises FileNotFoundError: If the ZIP file or expected XML is not found.
         :raises ValueError: If multiple matching XML files are found in the archive.
         """

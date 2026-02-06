@@ -651,8 +651,8 @@ class ParsedIODD:
     The result of parsing an IODD file before reference resolution.
 
     This dataclass contains the raw parsed IODD XML objects and
-    language-specific texts. Use the :meth:`resolve` method to produce
-    a fully resolved :class:`ResolvedIODD` object.
+    language-specific texts. Use the [`iodd_parser.ParsedIODD.resolve`][]  method to produce
+    a fully resolved [`iodd_parser.ParsedIODD`][]  object.
 
     :ivar iodd_definitions: The parsed standard definitions XML.
     :ivar iodd_units: The parsed standard unit definitions XML.
@@ -699,7 +699,7 @@ class ParsedIODD:
             6. Language sections within main device IODD file
             7. Device-specific language file (e.g., ``*-IODD1.1-de.xml``) - highest priority
 
-        :returns: A :class:`ResolvedIODD` object with all references resolved.
+        :returns: A [`iodd_parser.ResolvedIODD`][]  object with all references resolved.
         """
         # Import here to avoid circular imports
         from iodd_parser.resolvers import (
