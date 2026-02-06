@@ -2,6 +2,9 @@ site_name: iodd_parse Docs
 theme:
   name: material
 
+repo_url: https://github.com/oberth-effect/iodd-parser
+repo_name: oberth-effect/iodd-parser
+
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -18,7 +21,7 @@ plugins:
       default_handler: python
       handlers:
         python:
-          paths: [src]
+          paths: [ src ]
           options:
             docstring_style: sphinx
   - include-markdown
