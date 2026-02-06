@@ -91,8 +91,8 @@ def resolve_texts(
     loaded_units: IoddstandardUnitDefinitions,
     device: Iodevice,
     lang: str | None,
-    lang_texts: dict[str, dict[str, str]],
-    device_lang_texts: dict[str, str],
+    standard_lang_texts: dict[str, dict[str, str]],
+    device_lang_texts: dict[str, dict[str, str]],
 ) -> dict[str, str]:
     """
     Resolve text collections with language support.
@@ -111,8 +111,10 @@ def resolve_texts(
     :param loaded_units: The loaded standard unit definitions.
     :param device: The parsed device IODD.
     :param lang: Optional language code (e.g., "de", "fr").
-    :param lang_texts: Pre-loaded language-specific standard definitions texts.
-    :param device_lang_texts: Texts from device-specific language file.
+    :param standard_lang_texts: Pre-loaded language-specific standard definitions texts,
+        mapping language code to text dictionaries.
+    :param device_lang_texts: Texts from device-specific language files,
+        mapping language code to text dictionaries.
     :returns: Dictionary of resolved text strings keyed by text id.
     """
     # Always start with the primary language (English) as base
@@ -123,8 +125,8 @@ def resolve_texts(
     # If a specific language is requested, overlay those texts on top
     if lang:
         # First, apply pre-loaded language-specific standard definitions texts
-        if lang in lang_texts:
-            texts.update(lang_texts[lang])
+        if lang in standard_lang_texts:
+            texts.update(standard_lang_texts[lang])
 
         # Also check for language sections within the main definitions file (fallback)
         lang_dfs = next(
@@ -143,8 +145,8 @@ def resolve_texts(
             texts.update({t.id: t.value for t in lang_dev.text})
 
         # Finally, overlay device-specific language file texts (highest priority)
-        if device_lang_texts:
-            texts.update(device_lang_texts)
+        if lang in device_lang_texts:
+            texts.update(device_lang_texts[lang])
 
     return texts
 

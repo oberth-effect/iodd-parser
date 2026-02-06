@@ -21,7 +21,9 @@ pip install iodd-parser
 from iodd_parser import IODDParser
 
 parser = IODDParser()
-result = parser.parse("path/to/device-IODD1.1.zip")
+
+# Parse and resolve in one step
+result = parser.parse_and_resolve("path/to/device-IODD1.1.zip")
 
 print(result.device_name)
 print(result.device_manufacturer)
@@ -44,23 +46,60 @@ for unit_code, unit in result.units.items():
     print(f"Unit {unit_code}: {unit.name} ({unit.abbreviation})")
 ```
 
-### Language Support
+### Two-Step Parse and Resolve
 
-The parser supports multiple languages for text resolution. Language-specific standard
-definition files are pre-loaded at parser initialisation, and device-specific language
-files are loaded automatically from the IODD ZIP archive.
+For more control, you can separate the parse and resolve steps:
 
 ```python
 from iodd_parser import IODDParser
 
-# Pre-load German language definitions
-parser = IODDParser(langs=["de", "fr"])
+parser = IODDParser()
 
-# Parse with German texts
-result = parser.parse("path/to/device-IODD1.1.zip", lang="de")
+# Step 1: Parse the IODD file (discovers all available languages)
+parsed = parser.parse("path/to/device-IODD1.1.zip")
+
+# Check available languages
+print(f"Available languages: {parsed.available_languages}")
+
+# Step 2: Resolve with a specific language
+result = parsed.resolve(lang="de")
+```
+
+### Language Support
+
+The parser supports multiple languages for text resolution. Language-specific standard
+definition files are auto-discovered and pre-loaded at parser initialisation, and device-specific
+language files are discovered automatically from the IODD ZIP archive during parsing.
+
+```python
+from iodd_parser import IODDParser
+
+parser = IODDParser()
+
+# Parse the IODD file (all language files are discovered)
+parsed = parser.parse("path/to/device-IODD1.1.zip")
+
+# Check what languages are available
+print(f"Available: {parsed.available_languages}")  # e.g., {'de', 'fr', 'es', ...}
+
+# Resolve with German texts
+result = parsed.resolve(lang="de")
 
 # Variable names are now in German
 print(result.variables["V_VendorName"].name)  # "Herstellername"
+
+# Or use the convenience method
+result = parser.parse_and_resolve("path/to/device-IODD1.1.zip", lang="de")
+```
+
+### Custom Standard Definitions Folder
+
+You can load standard definitions from a custom folder instead of the bundled files:
+
+```python
+from iodd_parser import IODDParser
+
+parser = IODDParser(standard_definitions_folder="/path/to/definitions")
 ```
 
 ### Loading Images
@@ -77,11 +116,37 @@ for image in result.images:
 
 ## Result Structure
 
-The `parse()` method returns a `ParsedIODD` object containing:
+### ParsedIODD
+
+The `parse()` method returns a `ParsedIODD` object containing the raw parsed data:
 
 ```python
 @dataclass
 class ParsedIODD:
+    # Raw parsed objects (as per IODD schema)
+    iodd_definitions: IoddstandardDefinitions
+    iodd_units: IoddstandardUnitDefinitions
+    iodd_device: Iodevice
+
+    # Language texts from standard definitions and device
+    standard_lang_texts: dict[str, dict[str, str]]  # lang -> text_id -> text
+    device_lang_texts: dict[str, dict[str, str]]    # lang -> text_id -> text
+
+    # Extracted images (if load_images=True)
+    images: list[IoddImage]
+
+    # Properties and methods
+    available_languages: set[str]  # All discovered language codes
+    def resolve(self, lang: str | None = None) -> ResolvedIODD: ...
+```
+
+### ResolvedIODD
+
+The `resolve()` method (or `parse_and_resolve()`) returns a `ResolvedIODD` object:
+
+```python
+@dataclass
+class ResolvedIODD:
     # Raw parsed objects (as per IODD schema)
     iodd_definitions: IoddstandardDefinitions
     iodd_units: IoddstandardUnitDefinitions

@@ -711,15 +711,13 @@ class ParsedIODD:
             resolve_variables,
         )
 
-        device_lang_texts = self.device_lang_texts.get(lang, {}) if lang else {}
-
         texts = resolve_texts(
             self.iodd_definitions,
             self.iodd_units,
             self.iodd_device,
             lang,
             self.standard_lang_texts,
-            device_lang_texts,
+            self.device_lang_texts,
         )
 
         # Build datatypes lookup from both standard definitions and device

@@ -65,12 +65,20 @@ class IODDParser:
     Example usage::
 
         parser = IODDParser()
-        result = parser.parse("device.zip", lang="de")
+
+        # Two-step: parse then resolve
+        parsed = parser.parse("device.zip")
+        print(f"Available languages: {parsed.available_languages}")
+        result = parsed.resolve(lang="de")
+
+        # Or one-step convenience method
+        result = parser.parse_and_resolve("device.zip", lang="de")
+
         print(result.device_name)
         for var_id, var in result.variables.items():
             print(f"{var_id}: {var.name}")
 
-        # Or with a custom folder containing standard definitions:
+        # With a custom folder containing standard definitions:
         parser = IODDParser(standard_definitions_folder="/path/to/definitions")
     """
 
