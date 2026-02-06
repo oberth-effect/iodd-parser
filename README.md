@@ -95,9 +95,10 @@ class ParsedIODD:
     variables: dict[str, ResolvedVariable]      # Keyed by variable ID
     process_data: dict[str, ResolvedProcessData]  # Keyed by process data ID
     texts: dict[str, str]                       # Keyed by text ID
-    datatypes: dict[str, DatatypeT]             # Keyed by datatype ID
+    datatypes: dict[str, DatatypeT]             # Keyed by datatype ID (raw types)
     errors: dict[tuple[int, int], ResolvedError]  # Keyed by (code, additional_code)
     units: dict[int, ResolvedUnit]              # Keyed by unit code
+    user_interface: ResolvedUserInterface       # Menus and role assignments
 
     # Extracted images (if load_images=True)
     images: list[IoddImage]
@@ -105,11 +106,72 @@ class ParsedIODD:
 
 ### Resolved Types
 
+#### Variables and Data
+
 - **`ResolvedVariable`**: Variables from StdVariableRef, DirectParameterOverlay, or vendor-specific Variable elements
 - **`ResolvedError`**: Error types (code=128 for standard, code=129 for vendor-specific)
 - **`ResolvedUnit`**: Unit definitions with code, abbreviation, and name
 - **`ResolvedProcessData`**: Process data configuration with optional condition for switching
 - **`ResolvedProcessDataItem`**: Individual process data input/output description
+
+#### Resolved Datatypes
+
+Variables and process data items have a `datatype` field containing one of the following resolved types (instead of raw generated types):
+
+- **`ResolvedUIntegerT`**: Unsigned integer with `bit_length`, `single_values`, and `value_ranges`
+- **`ResolvedIntegerT`**: Signed integer with `bit_length`, `single_values`, and `value_ranges`
+- **`ResolvedFloat32T`**: 32-bit float with `single_values` and `value_ranges`
+- **`ResolvedBooleanT`**: Boolean with `single_values` (for true/false labels)
+- **`ResolvedStringT`**: String with `fixed_length` and `encoding`
+- **`ResolvedOctetStringT`**: Byte array with `fixed_length`
+- **`ResolvedTimeT`**: Absolute timestamp
+- **`ResolvedTimeSpanT`**: Duration/time span
+- **`ResolvedRecordT`**: Record/struct with `bit_length`, `subindex_access_supported`, and `items`
+- **`ResolvedArrayT`**: Array with `count`, `subindex_access_supported`, and `element_datatype`
+
+Single values and value ranges have their text references resolved:
+
+```python
+from iodd_parser import IODDParser
+
+parser = IODDParser()
+result = parser.parse("path/to/device-IODD1.1.zip")
+
+var = result.variables["V_DeviceStatus"]
+if hasattr(var.datatype, "single_values"):
+    for sv in var.datatype.single_values:
+        print(f"  {sv.value}: {sv.name}")
+        # Output:
+        #   0: Device is OK
+        #   1: Maintenance required
+        #   2: Out of specification
+```
+
+#### User Interface
+
+The user interface defines how the device is presented in IO-Link Tools:
+
+- **`ResolvedUserInterface`**: Contains menus and three role-based menu sets
+- **`ResolvedMenuSet`**: Top-level menu references for a user role (Identification, Parameter, Observation, Diagnosis)
+- **`ResolvedMenu`**: A menu containing variable refs, record item refs, and sub-menu refs
+- **`ResolvedVariableRef`**: Reference to a variable with display options (gradient, offset, unit, format)
+- **`ResolvedRecordItemRef`**: Reference to a record item with subindex
+- **`ResolvedMenuRef`**: Reference to a sub-menu with optional condition
+- **`ResolvedCondition`**: Condition for conditional menu display
+
+```python
+# Access user interface menus
+ui = result.user_interface
+
+# Get the specialist role menu set
+specialist = ui.specialist_role_menu_set
+print(f"Identification menu: {specialist.identification_menu_id}")
+
+# Access menu details
+menu = ui.menus[specialist.identification_menu_id]
+for var_ref in menu.variable_refs:
+    print(f"  Variable: {var_ref.variable_id}")
+```
 
 ## Licence
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
-from typing import TYPE_CHECKING
 
 from iodd_parser.generated.v1_1 import (
     AccessRightsT,
@@ -22,9 +21,6 @@ from iodd_parser.generated.v1_1 import (
     RecordItemInfoT,
     TextRefT,
 )
-
-if TYPE_CHECKING:
-    pass
 
 
 class UserRole(Enum):
@@ -651,6 +647,145 @@ class ResolvedProcessData:
 
 @dataclass
 class ParsedIODD:
+    """
+    The result of parsing an IODD file before reference resolution.
+
+    This dataclass contains the raw parsed IODD XML objects and
+    language-specific texts. Use the :meth:`resolve` method to produce
+    a fully resolved :class:`ResolvedIODD` object.
+
+    :ivar iodd_definitions: The parsed standard definitions XML.
+    :ivar iodd_units: The parsed standard unit definitions XML.
+    :ivar iodd_device: The parsed device IODD XML.
+    :ivar standard_lang_texts: Dict of language code to text dictionaries from
+        standard definitions.
+    :ivar device_lang_texts: Dict of language code to text dictionaries from
+        device-specific language files.
+    :ivar images: List of images extracted from the IODD archive.
+    """
+
+    iodd_definitions: IoddstandardDefinitions
+    iodd_units: IoddstandardUnitDefinitions
+    iodd_device: Iodevice
+    standard_lang_texts: dict[str, dict[str, str]]
+    device_lang_texts: dict[str, dict[str, str]]
+    images: list[IoddImage]
+
+    @property
+    def available_languages(self) -> set[str]:
+        """
+        Get the set of available language codes.
+
+        :returns: A set of language codes available in either standard or device texts.
+        """
+        return set(self.standard_lang_texts.keys()) | set(self.device_lang_texts.keys())
+
+    def resolve(self, lang: str | None = None) -> ResolvedIODD:
+        """
+        Resolve all references and produce a fully resolved ResolvedIODD object.
+
+        This method resolves all text references, datatypes, variables, errors,
+        units, process data, and user interface elements.
+
+        :param lang: Optional language code (e.g., "de", "fr") for localised texts.
+            When specified, texts are resolved in the following priority order
+            (later sources override earlier ones):
+
+            1. Primary language (English) from standard definitions
+            2. Primary language from device IODD
+            3. Primary language from standard unit definitions (English only)
+            4. Pre-loaded language-specific standard definitions file (if available)
+            5. Language sections within main standard definitions file
+            6. Language sections within main device IODD file
+            7. Device-specific language file (e.g., ``*-IODD1.1-de.xml``) - highest priority
+
+        :returns: A :class:`ResolvedIODD` object with all references resolved.
+        """
+        # Import here to avoid circular imports
+        from iodd_parser.resolvers import (
+            resolve_errors,
+            resolve_process_data,
+            resolve_texts,
+            resolve_units,
+            resolve_user_interface,
+            resolve_variables,
+        )
+
+        device_lang_texts = self.device_lang_texts.get(lang, {}) if lang else {}
+
+        texts = resolve_texts(
+            self.iodd_definitions,
+            self.iodd_units,
+            self.iodd_device,
+            lang,
+            self.standard_lang_texts,
+            device_lang_texts,
+        )
+
+        # Build datatypes lookup from both standard definitions and device
+        datatypes: dict[str, DatatypeT] = {}
+        if self.iodd_definitions.datatype_collection is not None:
+            for dt in self.iodd_definitions.datatype_collection.datatype:
+                if dt.id is not None:
+                    datatypes[dt.id] = dt
+        if self.iodd_device.profile_body.device_function.datatype_collection is not None:
+            for dt in self.iodd_device.profile_body.device_function.datatype_collection.datatype:
+                if dt.id is not None:
+                    datatypes[dt.id] = dt
+
+        # Resolve all collections
+        errors = resolve_errors(
+            self.iodd_definitions.error_type_collection,
+            self.iodd_device.profile_body.device_function.error_type_collection,
+            texts,
+        )
+
+        units = resolve_units(self.iodd_units, texts)
+
+        variables = resolve_variables(
+            self.iodd_definitions.variable_collection,
+            self.iodd_device.profile_body.device_function.variable_collection,
+            texts,
+            datatypes,
+        )
+
+        process_data = resolve_process_data(
+            self.iodd_device.profile_body.device_function.process_data_collection,
+            texts,
+            datatypes,
+        )
+
+        user_interface = resolve_user_interface(
+            self.iodd_device.profile_body.device_function.user_interface,
+            texts,
+        )
+
+        # Extract device identity information
+        device_identity = self.iodd_device.profile_body.device_identity
+        device_name = texts.get(
+            device_identity.device_name.text_id,
+            device_identity.device_name.text_id,
+        )
+
+        return ResolvedIODD(
+            iodd_definitions=self.iodd_definitions,
+            iodd_units=self.iodd_units,
+            iodd_device=self.iodd_device,
+            device_name=device_name,
+            device_manufacturer=device_identity.vendor_name,
+            variables=variables,
+            process_data=process_data,
+            texts=texts,
+            datatypes=datatypes,
+            errors=errors,
+            units=units,
+            user_interface=user_interface,
+            images=self.images,
+        )
+
+
+@dataclass
+class ResolvedIODD:
     """
     The result of parsing an IODD file with all references resolved.
 

@@ -14,23 +14,15 @@ from pathlib import Path
 from xsdata.formats.dataclass.parsers import XmlParser
 
 from iodd_parser.generated.v1_1 import (
-    DatatypeT,
     ExternalTextDocument,
     IoddstandardDefinitions,
     IoddstandardUnitDefinitions,
     Iodevice,
 )
-from iodd_parser.resolvers import (
-    resolve_errors,
-    resolve_process_data,
-    resolve_texts,
-    resolve_units,
-    resolve_user_interface,
-    resolve_variables,
-)
 from iodd_parser.types import (
     IoddImage,
     ParsedIODD,
+    ResolvedIODD,
 )
 
 STANDARD_DEFINITIONS_PACKAGE = "iodd_parser.standard_definitions"
@@ -41,30 +33,14 @@ IODD_IMAGE_FORMATS = {
 }
 
 
-def _resolve_standard_definition_source(value: str | Path) -> Path | Traversable:
+def _get_bundled_resource(filename: str) -> Traversable:
     """
-    Resolve a standard definition file path.
+    Get a file from the bundled standard definitions package.
 
-    If a simple filename is provided, looks for it in the bundled
-    standard definitions package. Otherwise, treats it as a filesystem path.
-
-    :param value: Filename or path to the standard definition file.
-    :returns: Resolved path or traversable resource.
-    :raises TypeError: If the value type is not supported.
+    :param filename: Name of the file to retrieve.
+    :returns: Traversable resource for the file.
     """
-    if isinstance(value, Path):
-        return value
-
-    if isinstance(value, str):
-        resource_dir = files(STANDARD_DEFINITIONS_PACKAGE).joinpath(STANDARD_DEFINITIONS_VERSION)
-        file_path = Path(value)
-        if len(file_path.parts) == 1:
-            candidate = resource_dir.joinpath(file_path.name)
-            if candidate.is_file():
-                return candidate
-        return file_path
-
-    raise TypeError(f"Unsupported standard definition type: {type(value)!r}")
+    return files(STANDARD_DEFINITIONS_PACKAGE).joinpath(STANDARD_DEFINITIONS_VERSION, filename)
 
 
 class IODDParser:
@@ -75,24 +51,27 @@ class IODDParser:
     produce a unified :class:`ParsedIODD` result with resolved text strings,
     datatypes, variables, errors, units, and process data.
 
-    :param standard_definitions: Path or filename of the standard definitions XML.
-        Defaults to the bundled IODD-StandardDefinitions1.1.xml.
-    :param standard_unit_definitions: Path or filename of the standard unit
-        definitions XML. Defaults to the bundled IODD-StandardUnitDefinitions1.1.xml.
+    :param standard_definitions_folder: Optional path to a folder containing
+        standard definitions and language files. When provided, all files are
+        loaded from this folder and all language files matching the pattern
+        ``<base>-<lang>.xml`` are auto-discovered.
+    :param standard_definitions_filename: Filename of the standard definitions XML.
+        Defaults to IODD-StandardDefinitions1.1.xml.
+    :param standard_unit_filename: Filename of the standard unit definitions XML.
+        Defaults to IODD-StandardUnitDefinitions1.1.xml.
     :param load_images: Whether to extract and load images from the IODD archive.
         Defaults to False.
-    :param langs: Optional list of language codes (e.g., ["de", "fr"]) to pre-load
-        from standard definitions. Language-specific files are loaded with the
-        corresponding suffix (e.g., IODD-StandardDefinitions1.1-de.xml). Note that
-        unit definitions only exist in English.
 
     Example usage::
 
-        parser = IODDParser(langs=["de", "fr"])
+        parser = IODDParser()
         result = parser.parse("device.zip", lang="de")
         print(result.device_name)
         for var_id, var in result.variables.items():
             print(f"{var_id}: {var.name}")
+
+        # Or with a custom folder containing standard definitions:
+        parser = IODDParser(standard_definitions_folder="/path/to/definitions")
     """
 
     load_images: bool
@@ -102,60 +81,62 @@ class IODDParser:
 
     def __init__(
         self,
-        standard_definitions: str | Path = "IODD-StandardDefinitions1.1.xml",
-        standard_unit_definitions: str | Path = "IODD-StandardUnitDefinitions1.1.xml",
+        standard_definitions_folder: str | Path | None = None,
+        standard_definitions_filename: str = "IODD-StandardDefinitions1.1.xml",
+        standard_unit_filename: str = "IODD-StandardUnitDefinitions1.1.xml",
         load_images: bool = False,
-        langs: list[str] | None = None,
     ):
         self.load_images = load_images
 
         parser = XmlParser()
 
-        definitions_source = _resolve_standard_definition_source(standard_definitions)
-        units_source = _resolve_standard_definition_source(standard_unit_definitions)
+        # Determine sources based on whether a folder is provided
+        if standard_definitions_folder is not None:
+            folder = Path(standard_definitions_folder)
+            definitions_source = folder / standard_definitions_filename
+            units_source = folder / standard_unit_filename
+        else:
+            definitions_source = _get_bundled_resource(standard_definitions_filename)
+            units_source = _get_bundled_resource(standard_unit_filename)
 
         self._loaded_definitions = parser.parse(definitions_source, IoddstandardDefinitions)
         self._loaded_units = parser.parse(units_source, IoddstandardUnitDefinitions)
 
         # Pre-load language-specific standard definitions (texts only)
         self._lang_texts = {}
+        def_base = Path(standard_definitions_filename)
+        base_stem = def_base.stem
+        lang_prefix = f"{base_stem}-"
 
-        if langs:
-            # Derive language-specific filenames from the base filename
-            # Note: Only standard definitions have language files, not unit definitions
-            def_base = Path(standard_definitions)
+        # Get iterable of (name, source) tuples for language file discovery
+        if standard_definitions_folder is not None:
+            folder = Path(standard_definitions_folder)
+            lang_files = ((f.name, f) for f in folder.glob(f"{base_stem}-*{def_base.suffix}"))
+        else:
+            resource_dir = files(STANDARD_DEFINITIONS_PACKAGE).joinpath(STANDARD_DEFINITIONS_VERSION)
+            lang_files = ((r.name, r) for r in resource_dir.iterdir() if r.is_file())
 
-            for lang_code in langs:
-                # Build language-specific filename: name-lang.xml
-                def_lang_name = f"{def_base.stem}-{lang_code}{def_base.suffix}"
+        for name, source in lang_files:
+            stem = Path(name).stem
+            if stem.startswith(lang_prefix):
+                lang_code = stem[len(lang_prefix) :]
+                if lang_code:
+                    try:
+                        lang_def = parser.parse(source, ExternalTextDocument)
+                        self._lang_texts[lang_code] = {t.id: t.value for t in lang_def.language.text}
+                    except (FileNotFoundError, OSError):
+                        pass
 
-                try:
-                    def_lang_source = _resolve_standard_definition_source(def_lang_name)
-                    lang_def = parser.parse(def_lang_source, ExternalTextDocument)
-                    self._lang_texts[lang_code] = {t.id: t.value for t in lang_def.language.text}
-                except (FileNotFoundError, OSError):
-                    pass  # Language file not available
-
-    def parse(self, zip_path: str | Path, lang: str | None = None) -> ParsedIODD:
+    def parse(self, zip_path: str | Path) -> ParsedIODD:
         """
-        Parse an IODD ZIP archive.
+        Parse an IODD ZIP archive without resolving references.
+
+        This method parses the XML files and discovers all available language files,
+        returning a :class:`ParsedIODD` object. Call :meth:`ParsedIODD.resolve`
+        on the result to resolve all references with an optional language.
 
         :param zip_path: Path to the IODD ZIP file.
-        :param lang: Optional language code (e.g., "de", "fr") for localised texts.
-            When specified, texts are resolved in the following priority order
-            (later sources override earlier ones):
-
-            1. Primary language (English) from standard definitions
-            2. Primary language from device IODD
-            3. Primary language from standard unit definitions (English only)
-            4. Pre-loaded language-specific standard definitions file (if available)
-            5. Language sections within main standard definitions file
-            6. Language sections within main device IODD file
-            7. Device-specific language file (e.g., ``*-IODD1.1-de.xml``) - highest priority
-
-            For standard definition language support, ensure the parser was initialised
-            with the required languages via the ``langs`` parameter.
-        :returns: A :class:`ParsedIODD` object with all resolved data.
+        :returns: A :class:`ParsedIODD` object with parsed XML data.
         :raises FileNotFoundError: If the ZIP file or expected XML is not found.
         :raises ValueError: If multiple matching XML files are found in the archive.
         """
@@ -183,26 +164,27 @@ class IODDParser:
             xml_data = archive.read(main_xml_name)
             device = XmlParser().parse(io.BytesIO(xml_data), Iodevice)
 
-            # If language is requested, try to load the language file as ExternalTextDocument
-            # Language file name: <main_name_without_extension>-<lang>.xml
-            device_lang_texts: dict[str, str] = {}
-            if lang:
-                # Derive language file name from main file name
-                # e.g., "VendorX-DeviceY-20110603-IODD1.1.xml" -> "VendorX-DeviceY-20110603-IODD1.1-ru.xml"
-                main_base = main_xml_name.rsplit(".", 1)[0]  # Remove .xml extension
-                lang_file_name = f"{main_base}-{lang}.xml"
-                lang_file_name_lower = lang_file_name.lower()
+            # Discover all language files in the archive
+            # Language file pattern: <main_name_without_extension>-<lang>.xml
+            device_lang_texts: dict[str, dict[str, str]] = {}
+            main_base = main_xml_name.rsplit(".", 1)[0]  # Remove .xml extension
+            lang_prefix = f"{main_base}-".lower()
 
-                # Find the language file in the archive (case-insensitive)
-                lang_file_match = next(
-                    (name for name in archive.namelist() if name.lower() == lang_file_name_lower),
-                    None,
-                )
-
-                if lang_file_match:
-                    lang_xml_data = archive.read(lang_file_match)
-                    lang_doc = XmlParser().parse(io.BytesIO(lang_xml_data), ExternalTextDocument)
-                    device_lang_texts = {t.id: t.value for t in lang_doc.language.text}
+            for name in archive.namelist():
+                if name.endswith("/"):
+                    continue
+                name_lower = name.lower()
+                if name_lower.startswith(lang_prefix) and name_lower.endswith(".xml"):
+                    # Extract language code from filename
+                    # e.g., "VendorX-DeviceY-20110603-IODD1.1-de.xml" -> "de"
+                    lang_part = name[len(main_base) + 1 : -4]  # Remove prefix and .xml
+                    if lang_part and "-" not in lang_part:  # Valid language code (no extra dashes)
+                        try:
+                            lang_xml_data = archive.read(name)
+                            lang_doc = XmlParser().parse(io.BytesIO(lang_xml_data), ExternalTextDocument)
+                            device_lang_texts[lang_part] = {t.id: t.value for t in lang_doc.language.text}
+                        except (OSError, Exception):
+                            pass  # Skip invalid language files
 
             images: list[IoddImage] = []
             if self.load_images:
@@ -212,75 +194,40 @@ class IODDParser:
                     if Path(name).suffix.lower() in IODD_IMAGE_FORMATS:
                         images.append(IoddImage(filename=name, data=archive.read(name)))
 
-        texts = resolve_texts(
-            self._loaded_definitions,
-            self._loaded_units,
-            device,
-            lang,
-            self._lang_texts,
-            device_lang_texts,
-        )
-
-        # Build datatypes lookup from both standard definitions and device
-        datatypes: dict[str, DatatypeT] = {}
-        if self._loaded_definitions.datatype_collection is not None:
-            for dt in self._loaded_definitions.datatype_collection.datatype:
-                if dt.id is not None:
-                    datatypes[dt.id] = dt
-        if device.profile_body.device_function.datatype_collection is not None:
-            for dt in device.profile_body.device_function.datatype_collection.datatype:
-                if dt.id is not None:
-                    datatypes[dt.id] = dt
-
-        # Resolve all collections
-        errors = resolve_errors(
-            self._loaded_definitions.error_type_collection,
-            device.profile_body.device_function.error_type_collection,
-            texts,
-        )
-
-        units = resolve_units(self._loaded_units, texts)
-
-        variables = resolve_variables(
-            self._loaded_definitions.variable_collection,
-            device.profile_body.device_function.variable_collection,
-            texts,
-            datatypes,
-        )
-
-        process_data = resolve_process_data(
-            device.profile_body.device_function.process_data_collection,
-            texts,
-            datatypes,
-        )
-
-        user_interface = resolve_user_interface(
-            device.profile_body.device_function.user_interface,
-            texts,
-        )
-
-        # Extract device identity information
-        device_identity = device.profile_body.device_identity
-        device_name = texts.get(
-            device_identity.device_name.text_id,
-            device_identity.device_name.text_id,
-        )
-
         return ParsedIODD(
             iodd_definitions=self._loaded_definitions,
             iodd_units=self._loaded_units,
             iodd_device=device,
-            device_name=device_name,
-            device_manufacturer=device_identity.vendor_name,
-            variables=variables,
-            process_data=process_data,
-            texts=texts,
-            datatypes=datatypes,
-            errors=errors,
-            units=units,
-            user_interface=user_interface,
+            standard_lang_texts=self._lang_texts,
+            device_lang_texts=device_lang_texts,
             images=images,
         )
+
+    def parse_and_resolve(self, zip_path: str | Path, lang: str | None = None) -> ResolvedIODD:
+        """
+        Parse an IODD ZIP archive and resolve all references.
+
+        This is a convenience method that calls :meth:`parse` followed by
+        :meth:`ParsedIODD.resolve`.
+
+        :param zip_path: Path to the IODD ZIP file.
+        :param lang: Optional language code (e.g., "de", "fr") for localised texts.
+            When specified, texts are resolved in the following priority order
+            (later sources override earlier ones):
+
+            1. Primary language (English) from standard definitions
+            2. Primary language from device IODD
+            3. Primary language from standard unit definitions (English only)
+            4. Pre-loaded language-specific standard definitions file (if available)
+            5. Language sections within main standard definitions file
+            6. Language sections within main device IODD file
+            7. Device-specific language file (e.g., ``*-IODD1.1-de.xml``) - highest priority
+
+        :returns: A :class:`ResolvedIODD` object with all resolved data.
+        :raises FileNotFoundError: If the ZIP file or expected XML is not found.
+        :raises ValueError: If multiple matching XML files are found in the archive.
+        """
+        return self.parse(zip_path).resolve(lang)
 
     @property
     def standard_definitions(self) -> IoddstandardDefinitions:
@@ -299,3 +246,13 @@ class IODDParser:
         :returns: The parsed standard unit definitions object.
         """
         return self._loaded_units
+
+    @property
+    def language_texts(self) -> dict[str, dict[str, str]]:
+        """
+        Get the pre-loaded language-specific texts from standard definitions.
+
+        :returns: A dictionary mapping language codes to their text dictionaries.
+            Each text dictionary maps text IDs to their localised string values.
+        """
+        return self._lang_texts
