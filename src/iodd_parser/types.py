@@ -208,19 +208,7 @@ class ResolvedRecordItemT:
     bit_offset: int
     name: str
     description: str | None
-    datatype: (
-        ResolvedUIntegerT
-        | ResolvedIntegerT
-        | ResolvedFloat32T
-        | ResolvedBooleanT
-        | ResolvedStringT
-        | ResolvedOctetStringT
-        | ResolvedTimeT
-        | ResolvedTimeSpanT
-        | ResolvedRecordT
-        | ResolvedArrayT
-        | None
-    )
+    datatype: ResolvedDatatype
 
 
 @dataclass
@@ -250,23 +238,11 @@ class ResolvedArrayT:
 
     count: int
     subindex_access_supported: bool
-    element_datatype: (
-        ResolvedUIntegerT
-        | ResolvedIntegerT
-        | ResolvedFloat32T
-        | ResolvedBooleanT
-        | ResolvedStringT
-        | ResolvedOctetStringT
-        | ResolvedTimeT
-        | ResolvedTimeSpanT
-        | ResolvedRecordT
-        | ResolvedArrayT
-        | None
-    )
+    element_datatype: ResolvedDatatype
 
 
 # Union type for all resolved datatypes
-ResolvedDatatype = (
+type ResolvedDatatype = (
     ResolvedUIntegerT
     | ResolvedIntegerT
     | ResolvedFloat32T
