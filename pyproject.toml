@@ -1,6 +1,6 @@
 [project]
 name = "iodd-parser"
-version = "0.1.0"
+version = "0.1.1"
 description = "A simple Python package for parsing IO-Link Device Description (IODD) v1.1 files"
 readme = "README.md"
 authors = [
